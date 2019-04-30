@@ -9,4 +9,7 @@
     <string name="setGps">Set GPS</string>
     <string name="noConnection"> No connection</string>
     <string name="getLocation"> Getting Location...</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

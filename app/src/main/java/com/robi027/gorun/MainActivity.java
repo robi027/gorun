@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.location.Location;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.constraint.ConstraintLayout;
@@ -16,6 +17,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.app.AppCompatDelegate;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -52,6 +54,7 @@ public class MainActivity extends AppCompatActivity{
     private ImageButton ibHistory;
     private LatLng point;
     private double lat, lng;
+    private BottomSheetBehavior sheetBehavior;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,7 +83,26 @@ public class MainActivity extends AppCompatActivity{
             }
         };
 
+        View nestedScroll = findViewById(R.id.nsView);
+        sheetBehavior = BottomSheetBehavior.from(nestedScroll);
+        sheetBehavior.setBottomSheetCallback(bottomSheetCallback);
+
+        Log.d(TAG, "onCreate: " + PrefUtil.getString(this, "id"));
     }
+
+    private BottomSheetBehavior.BottomSheetCallback bottomSheetCallback = new BottomSheetBehavior.BottomSheetCallback() {
+        @Override
+        public void onStateChanged(@NonNull View bottomSheet, int newState) {
+            Log.d(TAG, "onStateChanged: " + newState);
+        }
+
+        @Override
+        public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+
+        }
+    };
+
+
 
     private View.OnClickListener onClickListener = new View.OnClickListener() {
         @Override
@@ -166,6 +188,14 @@ public class MainActivity extends AppCompatActivity{
             if (points.size() > 0){
                 addMarker(points.get(0));
                 addMarker(points.get(points.size() - 1));
+
+                Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        detailRun();
+                    }
+                }, 1000);
             }
             btTracking.setText(R.string.trackingOff);
             btRunning.setVisibility(View.GONE);
@@ -193,5 +223,13 @@ public class MainActivity extends AppCompatActivity{
     public void addMarker(LatLng latLng){
         MarkerOptions markerOptions = new MarkerOptions().position(latLng);
         mMap.addMarker(markerOptions);
+    }
+
+    public void detailRun(){
+        if (sheetBehavior.getState() != BottomSheetBehavior.STATE_EXPANDED){
+            sheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+        }else {
+            sheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+        }
     }
 }

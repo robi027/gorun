@@ -13,6 +13,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -34,6 +35,7 @@ public class SplashScreenActivity extends AppCompatActivity {
     private FusedLocationProviderClient mFusedClient;
     private LocationCallback locationCallback;
     private static final int REQUEST_LOCATION_PERMISSION = 1;
+    private static final int REQUEST_READ_PHONE_STATE = 2;
     private int reqGPS = 2;
 
     @Override
@@ -49,18 +51,39 @@ public class SplashScreenActivity extends AppCompatActivity {
 
         mFusedClient = LocationServices.getFusedLocationProviderClient(this);
 
-        locationCallback = new LocationCallback(){
+        locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 getLocation(locationResult.getLastLocation());
             }
         };
 
-        if (Network.networkInfo(this) !=null){
+        if (Network.networkInfo(this).isConnected()) {
             setUpGPS();
-        }else {
+        } else {
             tvMessage.setText(R.string.noConnection);
             btRefresh.setVisibility(View.VISIBLE);
+        }
+
+        getImei();
+
+
+    }
+
+    private void getImei() {
+        if (!PrefUtil.getBoolean(this, "firstTime")){
+
+            TelephonyManager telephonyManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
+
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) !=
+                    PackageManager.PERMISSION_GRANTED){
+                ActivityCompat.requestPermissions(this, new String[]
+                        {Manifest.permission.READ_PHONE_STATE}, REQUEST_READ_PHONE_STATE);
+            }else {
+                Toast.makeText(this, telephonyManager.getDeviceId(), Toast.LENGTH_LONG).show();
+                PrefUtil.putString(this, "id", telephonyManager.getDeviceId());
+            }
+            PrefUtil.putBoolean(this, "firstTime", true);
         }
     }
 
@@ -76,7 +99,7 @@ public class SplashScreenActivity extends AppCompatActivity {
     };
 
     private void setUpGPS(){
-        if (Network.networkInfo(this) != null){
+        if (Network.networkInfo(this).isConnected()){
             if (Network.gpsEnabled(this)){
                 reqLocation();
             }else {
