@@ -40,6 +40,9 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.ArrayList;
 
+import retrofit2.Call;
+import retrofit2.Retrofit;
+
 public class MainActivity extends AppCompatActivity{
 
     private static final String TAG = MainActivity.class.getName();
@@ -55,6 +58,8 @@ public class MainActivity extends AppCompatActivity{
     private LatLng point;
     private double lat, lng;
     private BottomSheetBehavior sheetBehavior;
+    private Retrofit retrofit = RetrofitClientInstance.getRetrofitInstance();
+    private RunAPI api = retrofit.create(RunAPI.class);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -231,5 +236,9 @@ public class MainActivity extends AppCompatActivity{
         }else {
             sheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
         }
+    }
+
+    public void postRun(){
+        Call call = api.postRun("","","",null,null,null,null);
     }
 }
