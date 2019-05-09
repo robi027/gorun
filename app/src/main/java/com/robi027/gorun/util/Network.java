@@ -1,4 +1,4 @@
-package com.robi027.gorun;
+package com.robi027.gorun.util;
 
 import android.app.AlertDialog;
 import android.content.Context;

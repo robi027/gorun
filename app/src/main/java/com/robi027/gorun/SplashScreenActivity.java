@@ -5,8 +5,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.location.LocationManager;
 import android.net.NetworkInfo;
+import android.os.Build;
+import android.os.Handler;
 import android.provider.Settings;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
@@ -25,6 +26,9 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.robi027.gorun.util.LocationReq;
+import com.robi027.gorun.util.Network;
+import com.robi027.gorun.util.PrefUtil;
 
 public class SplashScreenActivity extends AppCompatActivity {
 
@@ -58,15 +62,21 @@ public class SplashScreenActivity extends AppCompatActivity {
             }
         };
 
-        if (Network.networkInfo(this).isConnected()) {
-            setUpGPS();
+        if (Network.networkInfo(this) != null) {
+            Handler handler = new Handler();
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    setUpGPS();
+                }
+            }, 1000);
+
         } else {
             tvMessage.setText(R.string.noConnection);
             btRefresh.setVisibility(View.VISIBLE);
         }
 
         getImei();
-
 
     }
 
@@ -80,8 +90,9 @@ public class SplashScreenActivity extends AppCompatActivity {
                 ActivityCompat.requestPermissions(this, new String[]
                         {Manifest.permission.READ_PHONE_STATE}, REQUEST_READ_PHONE_STATE);
             }else {
-                Toast.makeText(this, telephonyManager.getDeviceId(), Toast.LENGTH_LONG).show();
-                PrefUtil.putString(this, "id", telephonyManager.getDeviceId());
+                String deviceId = telephonyManager.getDeviceId();
+
+                PrefUtil.putString(this, "id", deviceId);
             }
             PrefUtil.putBoolean(this, "firstTime", true);
         }
@@ -99,7 +110,7 @@ public class SplashScreenActivity extends AppCompatActivity {
     };
 
     private void setUpGPS(){
-        if (Network.networkInfo(this).isConnected()){
+        if (Network.networkInfo(this) != null && Network.networkInfo(this).isConnected()){
             if (Network.gpsEnabled(this)){
                 reqLocation();
             }else {

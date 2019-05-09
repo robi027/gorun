@@ -1,4 +1,4 @@
-package com.robi027.gorun;
+package com.robi027.gorun.util;
 
 import com.google.android.gms.location.LocationRequest;
 

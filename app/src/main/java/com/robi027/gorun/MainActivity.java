@@ -6,23 +6,22 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
-import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
-import android.support.constraint.ConstraintLayout;
 import android.support.design.widget.BottomSheetBehavior;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.app.AppCompatDelegate;
+import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -37,11 +36,19 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.robi027.gorun.model.BaseResponse;
+import com.robi027.gorun.model.Run;
+import com.robi027.gorun.service.RunService;
+import com.robi027.gorun.util.LocationReq;
+import com.robi027.gorun.util.Network;
+import com.robi027.gorun.util.PrefUtil;
 
+import java.security.Timestamp;
 import java.util.ArrayList;
 
 import retrofit2.Call;
-import retrofit2.Retrofit;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity{
 
@@ -58,8 +65,9 @@ public class MainActivity extends AppCompatActivity{
     private LatLng point;
     private double lat, lng;
     private BottomSheetBehavior sheetBehavior;
-    private Retrofit retrofit = RetrofitClientInstance.getRetrofitInstance();
-    private RunAPI api = retrofit.create(RunAPI.class);
+    private TextView tvTgl, tvJarak, tvDurasi, tvKalori;
+    private long timeStart, timeEnd;
+    private ProgressBar pbDetail;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,6 +86,11 @@ public class MainActivity extends AppCompatActivity{
         btRunning = findViewById(R.id.btRunning);
         ibHistory = findViewById(R.id.ibHistory);
         ibHistory.setOnClickListener(onClickListener);
+        tvTgl = findViewById(R.id.tvTgl);
+        tvJarak = findViewById(R.id.tvJarak);
+        tvDurasi = findViewById(R.id.tvDurasi);
+        tvKalori = findViewById(R.id.tvKalori);
+        pbDetail = findViewById(R.id.pbDetail);
 
         mFusedClient = LocationServices.getFusedLocationProviderClient(this);
 
@@ -98,6 +111,10 @@ public class MainActivity extends AppCompatActivity{
     private BottomSheetBehavior.BottomSheetCallback bottomSheetCallback = new BottomSheetBehavior.BottomSheetCallback() {
         @Override
         public void onStateChanged(@NonNull View bottomSheet, int newState) {
+            switch (newState){
+                case BottomSheetBehavior.STATE_SETTLING:
+                    break;
+            }
             Log.d(TAG, "onStateChanged: " + newState);
         }
 
@@ -121,6 +138,8 @@ public class MainActivity extends AppCompatActivity{
                     }
                     break;
                 case R.id.ibHistory:
+                    Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
+                    startActivity(intent);
                     break;
             }
         }
@@ -162,6 +181,7 @@ public class MainActivity extends AppCompatActivity{
                     mFusedClient.requestLocationUpdates(LocationReq.getLocationRequest(), locationCallback, null);
                     btTracking.setText(R.string.trackingOn);
                     btRunning.setVisibility(View.VISIBLE);
+                    timeStart = System.currentTimeMillis();
                 }
             }else {
                 final AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -190,10 +210,11 @@ public class MainActivity extends AppCompatActivity{
         if (trackingLocation){
             trackingLocation = false;
             mFusedClient.removeLocationUpdates(locationCallback);
+            timeEnd = System.currentTimeMillis();
             if (points.size() > 0){
                 addMarker(points.get(0));
                 addMarker(points.get(points.size() - 1));
-
+                post();
                 Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
@@ -238,7 +259,53 @@ public class MainActivity extends AppCompatActivity{
         }
     }
 
-    public void postRun(){
-        Call call = api.postRun("","","",null,null,null,null);
+    public String durasi(long t0, long t1){
+
+        double diff = t1 - t0;
+        double diffMinutes = diff / (1000 * 60) ;
+        String minutes = String.format("%.2f", diffMinutes);
+
+        return minutes;
     }
+
+    public void post(){
+
+        String device = PrefUtil.getString(this, "id");
+        Log.d(TAG, "post: " + device);
+        String durasi = durasi(timeStart, timeEnd);
+        String lat_start = String.valueOf(points.get(0).latitude);
+        String lon_start = String.valueOf(points.get(0).longitude);
+        String lat_end = String.valueOf(points.get(points.size() - 1).latitude);
+        String lon_end = String.valueOf(points.get(points.size() - 1).longitude);
+
+        RunService runService = new RunService(this);
+        runService.create(device, durasi, lat_start, lon_start, lat_end, lon_end, new Callback() {
+            @Override
+            public void onResponse(Call call, Response response) {
+                pbDetail.setVisibility(View.GONE);
+                Run run = (Run) response.body();
+                if (run != null){
+                    if (!run.isError()){
+                        Log.d(TAG, "onResponse: " + run.getRunData());
+                        tvDurasi.setText(run.getRunData().getTimer());
+                        tvJarak.setText(run.getRunData().getJarak());
+                        tvKalori.setText(run.getRunData().getKalori());
+                        tvTgl.setText(run.getRunData().getTgl());
+                    }else {
+                        Toast.makeText(MainActivity.this, R.string.failureMessage, Toast.LENGTH_LONG).show();
+                    }
+                }else {
+                    Toast.makeText(MainActivity.this, R.string.failureMessage, Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call call, Throwable t) {
+                Log.d(TAG, "onFailure: " + t.getMessage());
+                Toast.makeText(MainActivity.this, R.string.failureMessage, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+
 }

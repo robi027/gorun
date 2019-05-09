@@ -66,24 +66,15 @@
     <android.support.v4.widget.NestedScrollView
         android:id="@+id/nsView"
         android:layout_width="match_parent"
-        android:layout_height="300dp"
+        android:layout_height="200dp"
         android:clipToPadding="true"
         app:behavior_hideable="true"
         app:behavior_peekHeight="0dp"
         app:layout_behavior="@string/bottom_sheet_behavior"
         android:background="@color/colorWhite">
 
-        <android.support.constraint.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            >
+        <include layout="@layout/detail_tracking"/>
 
-            <TextView
-                android:id="@+id/tvKet"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="TextView" />
-        </android.support.constraint.ConstraintLayout>
     </android.support.v4.widget.NestedScrollView>
 
 
